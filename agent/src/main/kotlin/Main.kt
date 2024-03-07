@@ -11,6 +11,12 @@ import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import io.ktor.util.*
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -24,21 +30,20 @@ data class GetGroupsResponse(
         val id: Int,
         val enabled: Int,
         val name: String,
-        val description: String,
+        val description: String?,
     )
 }
 
-suspend fun main() {
-    // TODO: transform this into a PiholeClient class
-    // TODO: consider the need to do a login request according to the "login-box" div presence
-    // TODO: write tests
-    // TODO: use kotlinx.serialization to parse the JSON responses
-    // TODO: check about this SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-    // TODO: try to generate a jar and test it on the Raspberry Pi
+class PiHoleConfig(
+    val baseUrl: String,
+    val password: String? = null,
+)
 
-    val baseUrl = "http://192.168.68.60"
+class PiHoleClient(
+    private val config: PiHoleConfig,
+) {
 
-    val client = HttpClient(CIO) {
+    private val client = HttpClient(CIO) {
         followRedirects = true
 
         install(HttpRedirect) {
@@ -60,37 +65,72 @@ suspend fun main() {
             })
         }
     }
-    val response: HttpResponse = client.get("$baseUrl/admin/index.php")
 
-    val body: String = response.body()
+    @OptIn(DelicateCoroutinesApi::class)
+    private val lazyToken = GlobalScope.async(Dispatchers.Unconfined, start = CoroutineStart.LAZY) {
+        getToken()
+    }
 
-    // login box is present if not logged in
-    val loginResponse = client.submitForm(
-        url = "$baseUrl/admin/login.php",
-        formParameters = parameters {
-            append("pw", "foobarqix@pihole")
+    private suspend fun getToken(): String {
+        val response: HttpResponse = client.get("${config.baseUrl}/admin/index.php")
+
+        val body = response.bodyAsText()
+        if (body.contains("login-card")) {
+            return getTokenAfterLogin()
         }
+
+        return extractToken(body)
+    }
+
+    private suspend fun getTokenAfterLogin(): String {
+        val loginResponse = client.submitForm(
+            url = "${config.baseUrl}/admin/login.php",
+            formParameters = parameters {
+                append("pw", config.password)
+            }
+        )
+
+        return extractToken(loginResponse.bodyAsText())
+    }
+
+    private fun StringValuesBuilder.append(name: String, value: String?) {
+        value?.let { append(name, it) }
+    }
+
+    private fun extractToken(body: String): String {
+        val tokenDiv = """<div id="token" hidden>"""
+        val indexOfTokenDiv = body.indexOf(tokenDiv) + tokenDiv.length
+        val indexOfEndTokenDiv = body.substring(indexOfTokenDiv).indexOf("</div>")
+        val token = body.substring(indexOfTokenDiv, indexOfTokenDiv + indexOfEndTokenDiv)
+
+        return token
+    }
+
+    suspend fun getGroups(): GetGroupsResponse {
+        val token = lazyToken.await()
+
+        val groups = client.submitForm(
+            url = "${config.baseUrl}/admin/scripts/pi-hole/php/groups.php",
+            formParameters = parameters {
+                append("action", "get_groups")
+                append("token", token)
+            }
+        )
+
+        return groups.body<GetGroupsResponse>()
+    }
+}
+
+suspend fun main() {
+    // TODO: check about this SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+    // TODO: write tests
+    // TODO: try to generate a jar and test it on the Raspberry Pi
+
+    val foo = PiHoleClient(
+        PiHoleConfig(
+            baseUrl = "http://192.168.68.50",
+            password = null,
+        )
     )
-
-    println(loginResponse.status)
-    println(loginResponse.headers)
-    val loginBody = loginResponse.bodyAsText()
-
-    val tokenDiv = """<div id="token" hidden>"""
-    val indexOfTokenDiv = loginBody.indexOf(tokenDiv) + tokenDiv.length
-    val indexOfEndTokenDiv = loginBody.substring(indexOfTokenDiv).indexOf("</div>")
-    val token = loginBody.substring(indexOfTokenDiv, indexOfTokenDiv + indexOfEndTokenDiv)
-    println(token)
-
-    val groups = client.submitForm(
-        url = "$baseUrl/admin/scripts/pi-hole/php/groups.php",
-        formParameters = parameters {
-            append("action", "get_groups")
-            append("token", token)
-        }
-    )
-
-    println(groups.status)
-    val r = groups.body<GetGroupsResponse>()
-    println(r)
+    println(foo.getGroups())
 }
