@@ -1,0 +1,118 @@
+package com.githuh.pihole.rabbit.com.github.ojacquemart.pihle.rabbit.agent
+
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.cookies.*
+import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.util.*
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
+
+class PiHoleClient(
+    private val config: PiHoleConfig,
+) {
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(PiHoleClient::class.java)
+
+        const val INDEX_FILE = "/admin/index.php"
+
+        const val LOGIN_FILE = "/admin/login.php"
+        const val LOGIN_TOKEN_ID = "token"
+        const val LOGIN_PASSWORD_PARAM = "pw"
+
+        const val GROUPS_FILE = "/admin/scripts/pi-hole/php/groups.php"
+    }
+
+    private val client = HttpClient(CIO) {
+        followRedirects = true
+
+        install(HttpRedirect) {
+            // needed to follow the redirect after a successful login request
+            checkHttpMethod = false
+        }
+
+        install(HttpCookies) {
+            // needed to pass the "PHPSESSID" cookie through the requests
+            storage = AcceptAllCookiesStorage()
+        }
+
+        install(ContentNegotiation) {
+            // needed to parse the JSON responses
+            json(Json {
+                ignoreUnknownKeys = true
+                prettyPrint = true
+                isLenient = true
+            })
+        }
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    val lazyToken = GlobalScope.async(Dispatchers.Unconfined, start = CoroutineStart.LAZY) {
+        getToken()
+    }
+
+    private suspend fun getToken(): String {
+        logger.debug("Trying to get the token")
+
+        return config.password?.let { getTokenAfterLogin() } ?: getTokenWithoutLogin()
+    }
+
+    private suspend fun getTokenAfterLogin(): String {
+        val loginResponse = client.submitForm(
+            url = "${config.baseUrl}$LOGIN_FILE",
+            formParameters = parameters {
+                append(LOGIN_PASSWORD_PARAM, config.password)
+            }
+        )
+
+        return extractToken(loginResponse.bodyAsText())
+    }
+
+    private fun StringValuesBuilder.append(name: String, value: String?) {
+        value?.let { append(name, it) }
+    }
+
+    private suspend fun getTokenWithoutLogin(): String {
+        val response: HttpResponse = client.get("${config.baseUrl}$INDEX_FILE")
+        val body = response.bodyAsText()
+
+        return extractToken(body)
+    }
+
+    private fun extractToken(body: String): String {
+        val tokenDiv = """<div id="$LOGIN_TOKEN_ID" hidden>"""
+        val indexOfTokenDiv = body.indexOf(tokenDiv) + tokenDiv.length
+        val indexOfEndTokenDiv = body.substring(indexOfTokenDiv).indexOf("</div>")
+        val token = body.substring(indexOfTokenDiv, indexOfTokenDiv + indexOfEndTokenDiv)
+
+        return token
+    }
+
+    suspend fun getGroups(): GetGroupsResponse {
+        val token = lazyToken.await()
+        logger.debug("Getting groups...")
+
+        val groups = client.submitForm(
+            url = "${config.baseUrl}$GROUPS_FILE",
+            formParameters = parameters {
+                append("action", "get_groups")
+                append("token", token)
+            }
+        )
+
+        return groups.body<GetGroupsResponse>()
+    }
+}
