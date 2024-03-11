@@ -12,6 +12,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.*
+import io.ktor.util.reflect.*
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -28,12 +29,16 @@ class PiHoleClient(
         private val logger = LoggerFactory.getLogger(PiHoleClient::class.java)
 
         const val INDEX_FILE = "/admin/index.php"
-
         const val LOGIN_FILE = "/admin/login.php"
-        const val LOGIN_TOKEN_ID = "token"
-        const val LOGIN_PASSWORD_PARAM = "pw"
 
         const val GROUPS_FILE = "/admin/scripts/pi-hole/php/groups.php"
+        const val GROUPS_ACTION = "groups"
+        const val GROUPS_CLIENTS_ACTION = "clients"
+        const val GROUPS_DOMAINS_ACTION = "domains"
+
+        const val PARAM_TOKEN = "token"
+        const val PARAM_PASSWORD = "pw"
+        const val PARAM_ACTION = "action"
     }
 
     private val client = HttpClient(CIO) {
@@ -74,7 +79,7 @@ class PiHoleClient(
         val loginResponse = client.submitForm(
             url = "${config.baseUrl}$LOGIN_FILE",
             formParameters = parameters {
-                append(LOGIN_PASSWORD_PARAM, config.password)
+                append(PARAM_PASSWORD, config.password)
             }
         )
 
@@ -93,7 +98,7 @@ class PiHoleClient(
     }
 
     private fun extractToken(body: String): String {
-        val tokenDiv = """<div id="$LOGIN_TOKEN_ID" hidden>"""
+        val tokenDiv = """<div id="$PARAM_TOKEN" hidden>"""
         val indexOfTokenDiv = body.indexOf(tokenDiv) + tokenDiv.length
         val indexOfEndTokenDiv = body.substring(indexOfTokenDiv).indexOf("</div>")
         val token = body.substring(indexOfTokenDiv, indexOfTokenDiv + indexOfEndTokenDiv)
@@ -101,18 +106,22 @@ class PiHoleClient(
         return token
     }
 
-    suspend fun getGroups(): GetGroupsResponse {
+    suspend fun getGroups(): GetGroupsResponse = submitGroupsAction("get_$GROUPS_ACTION", typeInfo<GetGroupsResponse>())
+    suspend fun getClients(): GetClientsResponse = submitGroupsAction("get_$GROUPS_CLIENTS_ACTION", typeInfo<GetClientsResponse>())
+    suspend fun getDomains(): GetDomainsResponse = submitGroupsAction("get_$GROUPS_DOMAINS_ACTION", typeInfo<GetDomainsResponse>())
+
+    private suspend fun <T> submitGroupsAction(action: String, typeInfo: TypeInfo): T {
         val token = lazyToken.await()
-        logger.debug("Getting groups...")
+        logger.debug("Getting groups $action...")
 
         val groups = client.submitForm(
             url = "${config.baseUrl}$GROUPS_FILE",
             formParameters = parameters {
-                append("action", "get_groups")
-                append("token", token)
+                append(PARAM_ACTION, action)
+                append(PARAM_TOKEN, token)
             }
         )
 
-        return groups.body<GetGroupsResponse>()
+        return groups.body(typeInfo)
     }
 }
