@@ -1,7 +1,7 @@
-package com.githuh.pihole.rabbit
+package com.github.pihole.rabbit
 
-import com.githuh.pihole.rabbit.com.github.ojacquemart.pihle.rabbit.agent.PiHoleClient
-import com.githuh.pihole.rabbit.com.github.ojacquemart.pihle.rabbit.agent.PiHoleConfig
+import com.github.ojacquemart.pihole.rabbit.agent.PiHoleClient
+import com.github.ojacquemart.pihole.rabbit.agent.PiHoleConfig
 
 suspend fun main() {
     // TODO: try to generate a crontab and see if it could be executed

@@ -1,4 +1,4 @@
-package com.githuh.pihole.rabbit.com.github.ojacquemart.pihle.rabbit.agent
+package com.github.ojacquemart.pihole.rabbit.agent
 
 import kotlinx.serialization.Serializable
 

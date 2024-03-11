@@ -3,7 +3,7 @@ plugins {
     kotlin("plugin.serialization") version "1.9.22"
 }
 
-group = "com.githuh.pihole.rabbit"
+group = "com.github.pihole.rabbit"
 version = "1.0-SNAPSHOT"
 
 repositories {
