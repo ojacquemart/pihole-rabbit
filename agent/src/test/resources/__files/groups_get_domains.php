@@ -2,26 +2,15 @@
     "data": [
         {
             "id": 1,
-            "type": 0,
+            "type": 3,
             "domain": "(^|\\.)youtube\\.com$",
             "enabled": 1,
             "date_added": 1630849177,
-            "date_modified": 1710104308,
-            "comment": "youtube",
+            "date_modified": 1710796040,
+            "comment": "no-youtube",
             "groups": [
-                1
-            ]
-        },
-        {
-            "id": 2,
-            "type": 3,
-            "domain": "(^|\\.)googlevideo\\.com$",
-            "enabled": 1,
-            "date_added": 1630849177,
-            "date_modified": 1651524608,
-            "comment": "googlevideo",
-            "groups": [
-                1
+                2,
+                3
             ]
         },
         {
@@ -30,22 +19,23 @@
             "domain": "(\\.|^)twitch\\.tv$",
             "enabled": 1,
             "date_added": 1652880390,
-            "date_modified": 1652977139,
-            "comment": "twitch",
+            "date_modified": 1710796179,
+            "comment": "no-twitch",
             "groups": [
-                1
+                8
             ]
         },
         {
             "id": 4,
-            "type": 2,
+            "type": 3,
             "domain": "(\\.|^)instagram\\.com$",
             "enabled": 1,
             "date_added": 1710107641,
-            "date_modified": 1710107763,
-            "comment": "instagram",
+            "date_modified": 1710796056,
+            "comment": "no-instagram",
             "groups": [
-                6
+                2,
+                3
             ]
         }
     ]

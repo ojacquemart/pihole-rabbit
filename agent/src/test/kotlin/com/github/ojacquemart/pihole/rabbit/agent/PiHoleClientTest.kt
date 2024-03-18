@@ -44,18 +44,15 @@ class PiHoleClientTest {
         val client = createClient(runtimeInfo)
 
         val groups = client.getGroups()
-        assertEquals(7, groups.data.size)
+        assertEquals(4, groups.data.size)
 
         val names = groups.data.map { it.name }
         assertEquals(
             listOf(
                 "Default",
-                "no-youtube",
-                "foobarqix",
-                "alfred",
+                "foo",
                 "bar",
                 "qix",
-                "no-instagram"
             ),
             names
         )
@@ -72,9 +69,9 @@ class PiHoleClientTest {
         assertEquals(
             listOf(
                 "media-player",
-                "alfred-macbook",
+                "foo-macbook",
                 "firetv",
-                "foobarqix",
+                "console",
             ),
             names
         )
@@ -85,15 +82,14 @@ class PiHoleClientTest {
         val client = createClient(runtimeInfo)
 
         val domains = client.getDomains()
-        assertEquals(4, domains.data.size)
+        assertEquals(3, domains.data.size)
 
         val comments = domains.data.map { it.comment }
         assertEquals(
             listOf(
-                "youtube",
-                "googlevideo",
-                "twitch",
-                "instagram",
+                "no-youtube",
+                "no-twitch",
+                "no-instagram",
             ),
             comments
         )

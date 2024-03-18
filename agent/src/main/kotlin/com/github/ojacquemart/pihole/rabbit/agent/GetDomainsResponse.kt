@@ -13,6 +13,7 @@ data class GetDomainsResponse(
         val type: Int,
         val domain: String,
         val comment: String?,
+        val enabled: Int,
         val groups: List<Int>,
     )
 }

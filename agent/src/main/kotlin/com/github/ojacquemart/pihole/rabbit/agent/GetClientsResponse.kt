@@ -9,7 +9,7 @@ data class GetClientsResponse(
 
     @Serializable
     data class Client(
-        val id: String,
+        val id: Int,
         val comment: String,
         val groups: List<Int>,
     )
