@@ -1,5 +1,6 @@
 package com.github.ojacquemart.pihole.rabbit.agent
 
+import com.github.pihole.rabbit.com.github.ojacquemart.pihole.rabbit.agent.GroupsView
 import org.slf4j.LoggerFactory
 
 data class GroupsViewAssembler(
@@ -7,7 +8,7 @@ data class GroupsViewAssembler(
 ) {
 
     companion object {
-        private val LOGGER = LoggerFactory.getLogger(GroupsViewAssembler::class.java)
+        private val logger = LoggerFactory.getLogger(GroupsViewAssembler::class.java)
     }
 
     private val client = PiHoleClient(config)
@@ -27,7 +28,7 @@ data class GroupsViewAssembler(
 
         val domainsView = domains.data
             .map { domain ->
-                LOGGER.trace("Building domain: {}", domain.id)
+                logger.trace("Building domain: {}", domain.id)
 
                 val clientsView = groupsOfClients
                     .map { client ->
@@ -46,25 +47,8 @@ data class GroupsViewAssembler(
                 )
             }
 
-        LOGGER.trace("Domain views resolved: {}", domainsView)
+        logger.trace("Domains view resolved: {}", domainsView)
 
         return GroupsView(domainsView)
     }
-}
-
-data class GroupsView(
-    val domains: List<DomainView>,
-) {
-    data class ClientView(
-        val id: Int,
-        val name: String,
-        val enabled: Boolean,
-    )
-
-    data class DomainView(
-        val id: Int,
-        val name: String?,
-        val enabled: Boolean?,
-        val clients: List<ClientView>,
-    )
 }

@@ -19,6 +19,10 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
 
+    val supabase_version = "2.2.2"
+    implementation("io.github.jan-tennert.supabase:gotrue-kt:$supabase_version")
+    implementation("io.github.jan-tennert.supabase:postgrest-kt:$supabase_version")
+
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
     implementation("ch.qos.logback:logback-classic:1.5.3")
