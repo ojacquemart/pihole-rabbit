@@ -4,6 +4,12 @@ import com.github.ojacquemart.pihole.rabbit.agent.PiHoleConfig
 import com.github.pihole.rabbit.com.github.ojacquemart.pihole.rabbit.agent.AgentConfig
 import com.github.pihole.rabbit.com.github.ojacquemart.pihole.rabbit.agent.GroupsStore
 import com.github.pihole.rabbit.com.github.ojacquemart.pihole.rabbit.agent.SupabaseConfig
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 suspend fun main() {
     // TODO: try to generate a crontab and see if it could be executed
@@ -31,4 +37,26 @@ suspend fun main() {
 
     val store = GroupsStore(config)
     store.upsert()
+
+    println("Listening for changes...")
+
+    val channel = config.supabaseClient.channel("foobarqix_foobaro")
+
+    // TODO: create constants for the primary key and the table name and the schema
+    val changeFlow = channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
+        table = "pihole_groups"
+        filter("id", FilterOperator.EQ, 2)
+    }
+
+    coroutineScope {
+        launch {
+            changeFlow.collect {
+                println("Change detected")
+                // TODO: figure out to deserialize the record using the kotlin serialization library
+                println(it.record)
+            }
+        }
+
+        channel.subscribe()
+    }
 }

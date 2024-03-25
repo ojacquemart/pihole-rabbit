@@ -2,8 +2,9 @@ package com.github.pihole.rabbit.com.github.ojacquemart.pihole.rabbit.agent
 
 import com.github.ojacquemart.pihole.rabbit.agent.PiHoleConfig
 import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.gotrue.Auth
+import io.github.jan.supabase.logging.LogLevel
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.realtime.Realtime
 
 data class AgentConfig(
     val pihole: PiHoleConfig,
@@ -14,8 +15,10 @@ data class AgentConfig(
         supabaseUrl = supabase.url,
         supabaseKey = supabase.key,
     ) {
-        install(Auth)
+        defaultLogLevel = LogLevel.DEBUG
+
         install(Postgrest)
+        install(Realtime)
     }
 
 }
