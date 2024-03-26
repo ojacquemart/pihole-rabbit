@@ -10,6 +10,7 @@ data class GroupsView(
     data class DomainView(
         val id: Int,
         val name: String?,
+        val type: Int?,
         val enabled: Boolean?,
         val clients: List<ClientView>,
     )

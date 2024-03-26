@@ -43,6 +43,7 @@ data class GroupsViewAssembler(
                     id = domain.id,
                     name = domain.comment,
                     enabled = domain.enabled == 1,
+                    type = domain.type,
                     clients = clientsView,
                 )
             }
