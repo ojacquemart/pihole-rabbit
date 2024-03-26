@@ -17,6 +17,8 @@ class GroupsStore(
 
     companion object {
         const val TABLE_NAME = "pihole_groups"
+        const val ID = "id"
+        const val DEFAULT_ID = 1
 
         private val logger = LoggerFactory.getLogger(GroupsStore::class.java)
     }

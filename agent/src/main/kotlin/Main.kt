@@ -10,6 +10,8 @@ import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromJsonElement
 
 suspend fun main() {
     // TODO: try to generate a crontab and see if it could be executed
@@ -21,6 +23,7 @@ suspend fun main() {
     // TODO: try to generate a jar and test it on the Raspberry Pi
     // TODO: rework the groups assembler
     // TODO: investigate the possible use of dsl
+    // TODO: general logger usage
 
     val piholeConfig = PiHoleConfig(
         baseUrl = "http://192.168.68.50",
@@ -38,22 +41,23 @@ suspend fun main() {
     val store = GroupsStore(config)
     store.upsert()
 
+    // TODO: extract this logic
     println("Listening for changes...")
 
-    val channel = config.supabaseClient.channel("foobarqix_foobaro")
+    val channel = config.supabaseClient.channel("pihole-rabbit-channel")
 
-    // TODO: create constants for the primary key and the table name and the schema
     val changeFlow = channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
-        table = "pihole_groups"
-        filter("id", FilterOperator.EQ, 2)
+        table = GroupsStore.TABLE_NAME
+        filter(GroupsStore.ID, FilterOperator.EQ, GroupsStore.DEFAULT_ID)
     }
 
     coroutineScope {
         launch {
             changeFlow.collect {
                 println("Change detected")
-                // TODO: figure out to deserialize the record using the kotlin serialization library
-                println(it.record)
+                val json = Json { ignoreUnknownKeys = true }
+                val (_, content) = json.decodeFromJsonElement<GroupsStore.GroupsTable>(it.record)
+                println(content)
             }
         }
 
